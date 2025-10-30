@@ -48,3 +48,5 @@ temp/
 
 # Documentation
 docs/
+run.sh
+test_api.py 
