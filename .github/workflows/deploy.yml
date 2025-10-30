@@ -1,0 +1,79 @@
+name: Deploy Bank Statement Processor via Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: aqiliman24/bank-statement-processor
+  IMAGE_TAG: latest
+  DEPLOY_HOST: ${{ secrets.SERVER_IP }}
+  DEPLOY_USER: ${{ secrets.SERVER_USER }}
+  DEPLOY_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker logout
+
+      - name: Copy docker-compose file to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          password: ${{ env.DEPLOY_PASSWORD }}
+          source: "docker-compose.yml"
+          target: "~/bank-statement-processor"
+
+      - name: Deploy on server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          password: ${{ env.DEPLOY_PASSWORD }}
+          script: |
+            cd ~/bank-statement-processor
+            
+            # Setup environment variables
+            echo "LLM_PROVIDER=${{ secrets.LLM_PROVIDER }}" > .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            echo "OPENAI_MODEL=${{ secrets.OPENAI_MODEL }}" >> .env
+            echo "OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}" >> .env
+            echo "DEBUG=false" >> .env
+            
+            # Pull latest image
+            docker pull --quiet ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            
+            # Stop and remove existing containers
+            docker compose down
+            
+            # Start new container
+            docker compose up -d
+            
+            # Verify deployment
+            docker compose ps
+            
+            # Clean up unused images
+            docker image prune -f
+            
+            # Reload Nginx to pick up changes (if applicable)
+            sudo systemctl reload nginx || true

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  bank-statement-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank-statement-processor
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-nano-2025-04-14}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=${DEBUG:-false}
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      # Mount uploads directory for persistence
+      - ./uploads:/app/uploads
+      # Mount .env file if it exists
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - bank-processor-network
+
+networks:
+  bank-processor-network:
+    driver: bridge

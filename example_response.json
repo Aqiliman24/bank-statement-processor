@@ -1,0 +1,34 @@
+{
+  "summary": {
+    "grand_total_credits": 15750.75,
+    "grand_total_debits": 8320.10,
+    "total_files_processed": 2,
+    "total_files_failed": 1,
+    "files": [
+      {
+        "file_name": "statement-jan-2024.pdf",
+        "status": "processed",
+        "data": {
+          "statement_period": "Jan 1, 2024 to Jan 31, 2024",
+          "total_credits": 10500.25,
+          "total_debits": 4100.00
+        }
+      },
+      {
+        "file_name": "statement-feb-2024.pdf",
+        "status": "processed",
+        "data": {
+          "statement_period": "Feb 1, 2024 to Feb 29, 2024",
+          "total_credits": 5250.50,
+          "total_debits": 4220.10,
+          "calculation_note": "Combined multiple credit sections from pages 1-3"
+        }
+      },
+      {
+        "file_name": "corrupted-scan.pdf",
+        "status": "failed",
+        "error": "Could not reliably parse numeric tables from OCR text"
+      }
+    ]
+  }
+}
