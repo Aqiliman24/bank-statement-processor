@@ -6,8 +6,56 @@ A FastAPI-based service that extracts financial data from bank statement PDFs us
 
 This application uses **LangGraph** to orchestrate the processing workflow as a stateful graph with automatic error handling and routing.
 
-📖 **[Read the LangGraph Guide](LANGGRAPH_GUIDE.md)** for detailed explanation  
-🚀 **[Quick Start Guide](LANGGRAPH_QUICKSTART.md)** for fast setup
+### LangGraph Workflow
+
+```
+                    ┌─────────────────┐
+                    │check_file_type  │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  file_ok?       │
+                    └────┬───────┬────┘
+                    yes  │       │ no
+                         │       │
+              ┌──────────▼──┐   │
+              │validate_pdf │   │
+              └──────┬──────┘   │
+                     │          │
+              ┌──────▼──────┐   │
+              │ is_valid?   │   │
+              └──┬───────┬──┘   │
+            yes  │       │ no   │
+                 │       │      │
+          ┌──────▼───┐  │      │
+          │convert_  │  │      │
+          │to_images │  │      │
+          └──────┬───┘  │      │
+                 │      │      │
+          ┌──────▼───┐  │      │
+          │success?  │  │      │
+          └──┬────┬──┘  │      │
+        yes  │    │ no  │      │
+             │    │     │      │
+      ┌──────▼─┐  │     │      │
+      │extract_│  │     │      │
+      │  data  │  │     │      │
+      └────┬───┘  │     │      │
+           │      │     │      │
+           │   ┌──▼─────▼──────▼──┐
+           │   │  handle_error    │
+           │   └────────┬─────────┘
+           │            │
+           └────────────▼─────
+                     END
+```
+
+**Workflow Steps:**
+1. **Check File Type** - Validates file type (PDF/ZIP) and size limits
+2. **Validate PDF** - Ensures PDF is readable and not corrupted
+3. **Convert to Images** - Converts PDF pages to base64-encoded images
+4. **Extract Data** - LLM analyzes images and extracts financial data
+5. **Handle Error** - Centralized error handling with graceful fallback
 
 ## Features
 
@@ -308,9 +356,6 @@ The API supports uploading ZIP archives containing multiple PDF bank statements:
 bank_statements.zip
 ├── january_2024.pdf
 ├── february_2024.pdf
-└── statements/
-    ├── march_2024.pdf
-    └── april_2024.pdf
 ```
 
 All PDFs will be extracted and processed individually, with results returned for each file.
@@ -326,33 +371,33 @@ Interactive API documentation is available at:
 
 ```
 bank-statment-processor/
-├── main.py                  # FastAPI application
+├── .github/
+│   └── workflows/
+│       └── deploy.yml       # GitHub Actions deployment
 ├── models/
 │   ├── __init__.py
 │   └── models.py            # Pydantic models
-├── utils/
-│   ├── __init__.py
-│   ├── config.py            # Configuration settings
-│   └── prompts.py           # LLM prompt templates
 ├── routes/
 │   ├── __init__.py
 │   └── routes.py            # API endpoints
 ├── services/
 │   ├── __init__.py
+│   ├── graph_workflow.py    # LangGraph workflow orchestration
 │   ├── llm_service.py       # LLM integration (OpenAI/LM Studio)
-│   └── pdf_service.py       # PDF reading
-├── uploads/                 # Temporary file storage
-├── requirements.txt         # Python dependencies
-├── Dockerfile               # Docker image definition
-├── docker-compose.yml       # Docker compose configuration
+│   └── pdf_service.py       # PDF reading and conversion
+├── utils/
+│   ├── __init__.py
+│   ├── config.py            # Configuration settings
+│   └── prompts.py           # LLM prompt templates
 ├── .dockerignore            # Docker build exclusions
 ├── .env.example             # Environment template
 ├── .gitignore
-├── run.sh                   # Startup script
-├── test_api.py              # API test script
-├── example_response.json    # Example output
-├── SETUP.md                 # Quick setup guide
-└── README.md
+├── Dockerfile               # Docker image definition
+├── docker-compose.yml       # Docker compose configuration
+├── example_response.json    # Example API response
+├── main.py                  # FastAPI application entry point
+├── README.md
+├── requirements.txt         # Python dependencies
 ```
 
 ## Error Handling

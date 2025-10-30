@@ -72,8 +72,8 @@ jobs:
             # Verify deployment
             docker compose ps
             
-            # Clean up unused images
-            docker image prune -f
+            # Clean up only old versions of this specific image
+            docker images ${{ env.IMAGE_NAME }} --format "{{.ID}} {{.Tag}}" | grep -v ${{ env.IMAGE_TAG }} | awk '{print $1}' | xargs -r docker rmi || true
             
             # Reload Nginx to pick up changes (if applicable)
             sudo systemctl reload nginx || true
